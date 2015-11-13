@@ -1,0 +1,29 @@
+# Make vim the default editor.
+export EDITOR='vim';
+
+# Source VirtualenvWrapper
+export WORKON_HOME=/Users/nmistry/Development/virtualenv
+source /usr/local/bin/virtualenvwrapper.sh
+
+# set node path
+export NODE_PATH=/usr/local/lib/node_modules
+
+
+# Avoid duplicates
+export HISTCONTROL=ignoredups:erasedups
+export HISTSIZE=1000
+export HISTFILESIZE=1000
+
+# After each command, append to the history file and reread it
+export PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND$'\n'}history -a; history -c; history -r"
+
+# Make Python use UTF-8 encoding for output to stdin, stdout, and stderr.
+export PYTHONIOENCODING='UTF-8';
+
+# Highlight section titles in manual pages.
+export LESS_TERMCAP_md="${yellow}";
+
+# here's LS_COLORS
+# github.com/trapd00r/LS_COLORS
+# command -v gdircolors >/dev/null 2>&1 || alias gdircolors="dircolors"
+# eval "$(gdircolors -b ~/.dircolors)"

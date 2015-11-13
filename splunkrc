@@ -1,0 +1,144 @@
+export P4CLIENT=nmistry-mbp13
+export P4USER=nmistry
+export P4PORT=perforce.splunk.com:1666
+export P4EDITOR=vim
+
+homedir="/Users/nmistry/Development/Splunk/build"
+sourcedir="/Users/nmistry/Development/Splunk/code"
+
+branches=(
+'dash'
+'develop'
+'sustain/ember'
+)
+
+
+
+# shortcuts and aliases
+alias s='bin/splunk'
+alias spl='$SPLUNK_HOME/bin/splunk'
+
+alias home='cd $SPLUNK_HOME'
+alias src='cd $SPLUNK_SOURCE'
+
+alias rs='spl restart'
+alias rss='spl restartss --debug'
+
+alias clear_home='pushd $SPLUNK_HOME; $SPLUNK_HOME/bin/splunk stop; rm -rf *; popd'
+alias clear_contrib='pushd $SPLUNK_SOURCE; cd contrib; ./buildit.py clean; cd ..; popd'
+
+alias build='pushd $SPLUNK_SOURCE; cd contrib; JOBS=-j50 ./buildit.py --osx-deployment-target=10.9 --skip-node; cd ..; ./configure --prefix=$SPLUNK_HOME --non-opt --with-testing --without-unfinished-tests; make -j50 install; popd;Enviro.sh'
+alias sbuild='pushd $SPLUNK_SOURCE; p4 sync ...; build; popd'
+alias cbuild='clear_home; clear_contrib; sbuild'
+
+alias jslint_all='spl cmd python $SPLUNK_SOURCE/test/tests/static/jslint.py $SPLUNK_SOURCE/web/search_mrsparkle/'
+
+# git shortcuts
+alias gdmb='git branch --merged | grep -v "\*" | xargs -n 1 git branch -d'
+alias gcod='git checkout develop'
+alias gcoe='git checkout sustain/ember'
+alias gcb='git checkout -b'
+alias gb='git branch'
+alias gst='git status'
+alias gcp='git cherry-pick -ex'
+
+# tailing shortcuts
+alias twa="tail -f var/log/splunk/web_access.log"
+alias tws="tail -f var/log/splunk/web_service.log"
+alias tsd="tail -f var/log/splunk/splunkd.log"
+alias tsa="tail -f var/log/splunk/splunkd_access.log"
+alias tsu="tail -f var/log/splunk/splunkd_ui_access.log"
+alias tpy="tail -f var/log/splunk/python.log"
+
+
+function setsplunk() {
+    . ~/.splunkrc
+    count=0
+    blen=${#branches[@]}
+    echo "Select your splunk home [$count-$blen]"
+    for branch in ${branches[@]}; do
+        echo "$count. $branch"
+        let "count = $count + 1";
+    done
+        echo "$count. Exit"
+    # server user based on he option.
+    read index
+
+    if [ $index -ge 0 -a $index -lt $blen ]; then
+        home="$homedir/built_${branches[$index]}"
+        source="$sourcedir/${branches[$index]}"
+
+        # sanity check for SPLUNK_HOME and SPLUNK_SOURCE
+        halt=0
+        if [ ! -d $home ]; then
+            echo "SPLUNK_HOME=$home does not exists. Would you like to create one [y/n]?"
+            read yn
+            $halt=$halt+1
+            if [ "$yn"="y" -o "$yn"="Y" ]; then
+                echo "creating $home"
+                mkdir -p $home
+                $halt=$halt-1
+            fi
+        fi
+
+        if [ ! -d $source ]; then
+            echo "SPLUNK_SOURCE=$source does not exists. Would you like to create one [y/n]?"
+            read yn
+            $halt=$halt+1
+            if [ "$yn"="y" -o "$yn"="Y" ]; then
+                echo "creating $source"
+                mkdir -p $source
+                $halt=$halt-1
+            fi
+        fi
+
+
+        # sure your want to continue?
+        if [ $halt -gt 0 ]; then
+            echo "Either SPLUNK_HOME or SPLUNK_SOURCE does not exists. Would like to still continue [y/n]?"
+            read yn
+        else
+            yn="y"
+        fi
+
+        # export SPLUNK_HOME, SPLUNK_SOURCE and setSplunkEnv
+        if [ "$yn"="y" -o "$yn"="Y" ]; then
+            cmd="export SPLUNK_HOME=${home}"
+            echo $cmd
+            $cmd
+
+            cmd="export SPLUNK_SOURCE=${source}"
+            echo $cmd
+            ${cmd}
+
+            if [ -f $SPLUNK_HOME/bin/setSplunkEnv ]; then
+                cmd="source $SPLUNK_HOME/bin/setSplunkEnv"
+                echo $cmd
+                ${cmd}
+            fi
+        fi
+    elif [ $index -eq $blen ]; then
+        #user want to exit
+        echo "b bye"
+    else
+        #user error :{
+        echo "Invalid option selected. Select between [0 - $blen]"
+    fi
+
+}
+
+mf() {
+if [ $# -lt 2 -o $# -gt 4 ]; then
+    echo "Need atleast 2 arguments"
+else
+    if [ $# -eq 2 ]; then
+        cmd="find -L '$1' -iname '$2'"
+    elif [ $# -eq 3 ]; then
+        cmd="find -L '$1' -iname '$2' -exec grep -Hin --color '$3' {} \;"
+    elif [ $# -eq 4 ]; then
+        cmd="find -L '$1' -iname '$2' ! -path '$3' -exec grep -Hin --color '$4' {} \;"
+    fi
+    # echo "Running: $cmd"
+    eval $cmd
+fi
+}
